@@ -27,7 +27,7 @@ def preprocess_data(og_df, max_bars_back):
 
     # Determine which columns to scale (typically numerical columns)
     # For instance, if you need 'open', 'high', 'low', 'close', and 'volume':
-    columns_to_scale = ['open', 'high', 'low', 'close', 'volume']
+    columns_to_scale = ['open', 'high', 'low', 'close', 'volume', 'confidence']
     
     # Scale the specified columns using MinMaxScaler
     scaler = MinMaxScaler()
@@ -53,6 +53,7 @@ def calculate_technical_indicators(processed_df, rsi_period=14, cci_period=20, r
     indicator_df['RSI'] = ta.rsi(processed_df['close'], length=rsi_period)
     indicator_df['CCI'] = ta.cci(processed_df['high'], processed_df['low'], processed_df['close'], length=cci_period)
     indicator_df['RSI2'] = ta.rsi(processed_df['close'], length=rsi_period2)
+    indicator_df['ADX'] = ta.adx(processed_df['high'], processed_df['low'], processed_df['close'], length=adx_period)['ADX_20']
     return indicator_df
 
 def train_lorentzian_model(indicator_df, n_neighbors):
@@ -100,8 +101,8 @@ def make_predictions(model, indicator_df, processed_df, future_candle=5):
     """
     # Use the trained model to find the k-nearest neighbors of the most recent data point in indicator_df
     dis, nbrs = model.kneighbors(np.expand_dims(indicator_df.iloc[-1], axis=0))
-    print("nbrs:\n", nbrs)
-    print("dis:\n", dis)
+    #print("nbrs:\n", nbrs)
+    #print("dis:\n", dis)
 
     # Initialize arrays to store the results
     res = np.empty((NEIGHBOURS_COUNT, future_candle))
@@ -116,8 +117,8 @@ def make_predictions(model, indicator_df, processed_df, future_candle=5):
 
     # Convert the timestamp data to pandas Timestamp objects
     time = np.array([[pd.to_datetime(ts, unit='ns') for ts in row] for row in time])
-    print("time:\n", time)
-    print("res:\n", res)
+    #print("time:\n", time)
+    #print("res:\n", res)
 
     return res, time
 
@@ -162,42 +163,90 @@ if __name__ == "__main__":
     og_df = pd.read_json(json_filename)
 
     # Convert columns to appropriate types
-    og_df['start'] = pd.to_datetime(og_df['start'])
+    og_df['start'] = pd.to_numeric(og_df['start'])
     og_df['dateTime'] = pd.to_datetime(og_df['dateTime'])
     og_df['high'] = pd.to_numeric(og_df['high'])
     og_df['low'] = pd.to_numeric(og_df['low'])
     og_df['open'] = pd.to_numeric(og_df['open'])
     og_df['close'] = pd.to_numeric(og_df['close'])
     og_df['volume'] = pd.to_numeric(og_df['volume'])
+    og_df['confidence'] = 0
 
     # Reverse the DataFrame to have the most recent data at the end
     og_df = og_df.iloc[::-1]
+    og_df = og_df.reset_index(drop=True)
 
     # Preprocess the data (scaling and other transformations)
     processed_df = preprocess_data(og_df, MAX_BARS_BACK)
-    print("Preprocessed DataFrame:\n", processed_df)
+    #print("Preprocessed DataFrame:\n", processed_df)
     
     # Calculate technical indicators
     indicator_df = calculate_technical_indicators(processed_df)
+
     # Handle NaN values, e.g., fill with the first non-NaN value or another strategy (currently using backward filling)
     indicator_df.fillna(method='bfill', inplace=True)
-    print("Final Technical Indicators DataFrame:\n", indicator_df)
+    #print("Final Technical Indicators DataFrame:\n", indicator_df)
     
     confidence = 0
+    future_candle = 5
 
-    # Train the Lorentzian model on the indicator data
-    model = train_lorentzian_model(indicator_df, NEIGHBOURS_COUNT)
-    
-    # Make predictions using the trained model
-    future_candle = 10
-    neighbors, time = make_predictions(model, indicator_df, processed_df, future_candle)
-    
-    # Calculate a confidence level for the predictions
-    for i in range(NEIGHBOURS_COUNT):
-        confidence =+ trend_direction_moving_average(neighbors[i])
-    
-    
-    print("confidence: ", confidence)
+    correct_prediction = 0
+    incorrect_prediction = 0
+    no_prediction = -1
+    prediction_start = 1000
+
+    for curr in range(prediction_start, len(indicator_df)):
+        curr_processed_df = processed_df.iloc[:curr]
+        curr_indicator_df = indicator_df.iloc[:curr]
+
+        confidence = 0
+        # Train the Lorentzian model on the indicator data
+        model = train_lorentzian_model(curr_indicator_df, NEIGHBOURS_COUNT)
+
+        # Make predictions using the trained model
+        neighbors, time = make_predictions(model, curr_indicator_df, curr_processed_df, future_candle)
+
+        # Calculate a confidence level for the predictions
+        for i in range(NEIGHBOURS_COUNT):
+            confidence += trend_direction_moving_average(neighbors[i])
+
+        #print("confidence: ", confidence)
+        og_df.at[curr, 'confidence'] = confidence
+
+    for curr in range(prediction_start + future_candle, len(og_df) - future_candle):
+        # Grab the 'confidence' at current index in og_df
+        current_confidence = og_df.at[curr, 'confidence']
+
+        # Grab the next future_candle 'close' values starting at current index in og_df
+        next_closes = og_df['close'].iloc[curr:curr + future_candle].to_numpy()
+        
+        # Get the trend direction of the next_closes
+        trend = trend_direction_moving_average(next_closes)
+
+        # Check if our confidence matches future trend
+        if current_confidence > 0:
+            # trend is up and confidence is up = good
+            if trend >= 0:
+                correct_prediction += 1
+            else:
+                incorrect_prediction += 1
+        elif current_confidence < 0:
+            # trend is up and confidence is down = bad
+            if trend > 0:
+                incorrect_prediction += 1
+            else:
+                correct_prediction += 1
+        else:
+            if trend == 0:
+                correct_prediction += 1
+            else:  
+                no_prediction += 1
+
+    print("correct_prediction: ", correct_prediction)
+    print("incorrect_prediction: ", incorrect_prediction)
+    print("no_prediction: ", no_prediction)
+
+    processed_df = preprocess_data(og_df, MAX_BARS_BACK)
 
     # Plotting
     # setting up multplie 3 plots
@@ -208,13 +257,13 @@ if __name__ == "__main__":
     axis[0].plot(og_df['dateTime'], og_df['close'], label='price', color='blue')
 
     # plotting model projected 
-    axis[1].set_title('model projected')
-    for i in range(NEIGHBOURS_COUNT):
-        axis[1].plot(range(future_candle), neighbors[i], label='Predicted', color='red')
+    #axis[1].set_title('model projected')
+    #axis[1].plot(range(future_candle), neighbors[i], label='Predicted', color='red')
 
     # plotting processed data 
-    #axis[2].set_title('processed data')
-    #axis[2].plot(processed_df['dateTime'], processed_df['close'], label='processed', color='green')
+    axis[1].set_title('processed data with confidence')
+    axis[1].plot(processed_df['dateTime'], processed_df['close'], label='price', color='red')
+    axis[1].plot(processed_df['dateTime'], processed_df['confidence'], label='confidence', color='blue')
 
 
     #plt.legend()
