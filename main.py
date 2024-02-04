@@ -161,6 +161,7 @@ if __name__ == "__main__":
     json_filename = 'BTC_USD-ONE_DAY-2015_8_1-to-2024_1_31.json'
     #json_filename = 'test.json'
     og_df = pd.read_json(json_filename)
+    print('uisng this chart: ', json_filename)
 
     # Convert columns to appropriate types
     og_df['start'] = pd.to_numeric(og_df['start'])
@@ -190,8 +191,10 @@ if __name__ == "__main__":
     confidence = 0
     future_candle = 5
 
-    correct_prediction = 0
-    incorrect_prediction = 0
+    false_up = 0
+    false_down = 0
+    true_up = 0
+    true_down = 0
     no_prediction = -1
     prediction_start = 1000
 
@@ -214,37 +217,39 @@ if __name__ == "__main__":
         og_df.at[curr, 'confidence'] = confidence
 
     for curr in range(prediction_start + future_candle, len(og_df) - future_candle):
-        # Grab the 'confidence' at current index in og_df
-        current_confidence = og_df.at[curr, 'confidence']
+        # Grab the last few 'confidence' at current index - future_candle in og_df
+        current_confidence = og_df['confidence'].iloc[curr - future_candle:curr].to_numpy()
 
         # Grab the next future_candle 'close' values starting at current index in og_df
         next_closes = og_df['close'].iloc[curr:curr + future_candle].to_numpy()
         
         # Get the trend direction of the next_closes
-        trend = trend_direction_moving_average(next_closes)
+        future_price_trend = trend_direction_moving_average(next_closes)
+        
+        # Get the trend direction of the
+        confidence_trend = trend_direction_moving_average(current_confidence)
 
         # Check if our confidence matches future trend
-        if current_confidence > 0:
+        if confidence_trend > 0:
             # trend is up and confidence is up = good
-            if trend >= 0:
-                correct_prediction += 1
+            if future_price_trend >= 0:
+                true_up += 1
             else:
-                incorrect_prediction += 1
-        elif current_confidence < 0:
+                false_up += 1
+        elif confidence_trend < 0:
             # trend is up and confidence is down = bad
-            if trend > 0:
-                incorrect_prediction += 1
+            if future_price_trend > 0:
+                false_down += 1
             else:
-                correct_prediction += 1
+                true_down += 1
         else:
-            if trend == 0:
-                correct_prediction += 1
-            else:  
-                no_prediction += 1
+            no_prediction += 1
 
-    print("correct_prediction: ", correct_prediction)
-    print("incorrect_prediction: ", incorrect_prediction)
-    print("no_prediction: ", no_prediction)
+    print("false_up:        ", false_up)
+    print("false_down:      ", false_down)
+    print("true_up:         ", true_up)
+    print("true_down:       ", true_down)
+    print("no_prediction:   ", no_prediction)
 
     processed_df = preprocess_data(og_df, MAX_BARS_BACK)
 
