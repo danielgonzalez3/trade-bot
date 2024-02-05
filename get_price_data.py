@@ -1,7 +1,7 @@
 import json, os
 from datetime import datetime, timezone
 from coinbaseadvanced.client import CoinbaseAdvancedTradeAPIClient, Granularity
-import config
+from config import PUBLIC, SECRET
 # Importing necessary libraries: json for handling JSON data,
 # datetime and timezone for date and time manipulation,
 # and classes from coinbaseadvanced.client for Coinbase Pro API interaction.
