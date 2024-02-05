@@ -55,3 +55,20 @@ FilterSettings_adxThreshold = 0
 Filter_volatility = False
 Filter_regime = False
 Filter_adx = False
+
+#Feature Variables: User-Defined Inputs for calculating Feature Series. 
+f1_string = 'RSI'
+f1_paramA = 0
+f1_paramB = 0
+f2_string = 'WT'
+f2_paramA = 0
+f2_paramB = 0
+f3_string = 'CCI'
+f3_paramA = 0
+f3_paramB = 0
+f4_string = 'ADX'
+f4_paramA = 0
+f4_paramB = 0
+f5_string = 'RSI'
+f5_paramA = 0
+f5_paramB = 0
