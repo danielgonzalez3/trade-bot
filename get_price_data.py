@@ -1,14 +1,10 @@
 import json, os
 from datetime import datetime, timezone
 from coinbaseadvanced.client import CoinbaseAdvancedTradeAPIClient, Granularity
+import config
 # Importing necessary libraries: json for handling JSON data,
 # datetime and timezone for date and time manipulation,
 # and classes from coinbaseadvanced.client for Coinbase Pro API interaction.
-
-# Replace these with your actual Coinbase Pro API credentials
-PUBLIC = 'WMKDzbHwCQ2gPIkt'
-SECRET = '6ho5CSb57t5zQltROUIx8TlNZP24uezG'
-
 
 def save_to_json_file(candles, file_name, directory):
     """

@@ -153,12 +153,12 @@ def trend_direction_moving_average(numbers, window_size=3):
     
 if __name__ == "__main__":
     # Load data from JSON file instead of fetching from NSE
-    #json_filename = 'BTC_USD-ONE_MINUTE-2015_8_1-to-2024_1_31.json'
-    #json_filename = 'BTC_USD-FIVE_MINUTE-2015_8_1-to-2024_1_31.json'
-    #json_filename = 'BTC_USD-FIFTEEN_MINUTE-2015_8_1-to-2024_1_31.json'
-    #json_filename = 'BTC_USD-ONE_HOUR-2015_8_1-to-2024_1_31.json'
-    #json_filename = 'BTC_USD-SIX_HOUR-2015_8_1-to-2024_1_31.json'
-    json_filename = 'BTC_USD-ONE_DAY-2015_8_1-to-2024_1_31.json'
+    #json_filename = 'BTC_USD/BTC_USD-ONE_MINUTE-2015_8_1-to-2024_1_31.json'
+    #json_filename = 'BTC_USD/BTC_USD-FIVE_MINUTE-2015_8_1-to-2024_1_31.json'
+    #json_filename = 'BTC_USD/BTC_USD-FIFTEEN_MINUTE-2015_8_1-to-2024_1_31.json'
+    #json_filename = 'BTC_USD/BTC_USD-ONE_HOUR-2015_8_1-to-2024_1_31.json'
+    #json_filename = 'BTC_USD/BTC_USD-SIX_HOUR-2015_8_1-to-2024_1_31.json'
+    json_filename = 'BTC_USD/BTC_USD-ONE_DAY-2015_8_1-to-2024_1_31.json'
     #json_filename = 'test.json'
     og_df = pd.read_json(json_filename)
     print('uisng this chart: ', json_filename)
