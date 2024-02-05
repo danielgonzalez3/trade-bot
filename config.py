@@ -17,8 +17,8 @@ Settings_showExits = False
 Settings_useDynamicExits = False
 
 #type Label
-Label_long = 0
-Label_short = 0
+Label_long = 1
+Label_short = -1
 Label_neutral = 0
 
 #type FeatureArrays

@@ -147,9 +147,9 @@ class MLExtensions:
         @param      quadratic_mean_length   <int>           The length of the quadratic mean.
         @returns    signal                  <numpy array>   The smoothed hyperbolic tangent transform of the input series.
         '''
-        normalized_deriv = normalize_derivative(src, quadratic_mean_length)
+        normalized_deriv = MLExtensions.normalize_derivative(src, quadratic_mean_length)
         tanh_result = np.tanh(normalized_deriv)
-        signal = dual_pole_filter(tanh_result, smoothing_frequency)
+        signal = MLExtensions.dual_pole_filter(tanh_result, smoothing_frequency)
     
         return signal
     
