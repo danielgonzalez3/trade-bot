@@ -6,12 +6,13 @@ SECRET = 'your_key'
 NEIGHBOURS_COUNT = 8
 MAX_BARS_BACK = 2000
 FEATURE_COUNT = 5
+FUTURE_CANDLE = 5
 
 #type Settings
 Settings_source = 0.0
-Settings_neighborsCount = 0
-Settings_maxBarsBack = 0
-Settings_featureCount = 0
+Settings_neighborsCount = 8
+Settings_maxBarsBack = 1000
+Settings_featureCount = 5
 Settings_colorCompression = 0
 Settings_showExits = False
 Settings_useDynamicExits = False
@@ -45,11 +46,11 @@ MLModel_predictionsArray = []
 MLModel_prediction = 0
 
 #type FilterSettings 
-FilterSettings_useVolatilityFilter = False
-FilterSettings_useRegimeFilter = False
-FilterSettings_useAdxFilter = False
-FilterSettings_regimeThreshold = 0.0
-FilterSettings_adxThreshold = 0
+FilterSettings_useVolatilityFilter = True
+FilterSettings_useRegimeFilter = True
+FilterSettings_useAdxFilter = True
+FilterSettings_regimeThreshold = -0.1
+FilterSettings_adxThreshold = 20
 
 #type Filter
 Filter_volatility = False
@@ -58,17 +59,17 @@ Filter_adx = False
 
 #Feature Variables: User-Defined Inputs for calculating Feature Series. 
 f1_string = 'RSI'
-f1_paramA = 0
-f1_paramB = 0
+f1_paramA = 14
+f1_paramB = 1
 f2_string = 'WT'
-f2_paramA = 0
-f2_paramB = 0
+f2_paramA = 11
+f2_paramB = 10
 f3_string = 'CCI'
-f3_paramA = 0
-f3_paramB = 0
+f3_paramA = 20
+f3_paramB = 1
 f4_string = 'ADX'
-f4_paramA = 0
-f4_paramB = 0
-f5_string = 'RSI'
-f5_paramA = 0
-f5_paramB = 0
+f4_paramA = 20
+f4_paramB = 1
+f5_string = 'RSI2'
+f5_paramA = 9
+f5_paramB = 1
