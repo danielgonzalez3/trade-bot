@@ -207,9 +207,6 @@ def approximate_nearest_neighbors(indicator_df, y_train_array):
     #print(distances)
     #print(historical_index)
 
-            
-
-    
     prediction = sum(predictions)
     return prediction
 

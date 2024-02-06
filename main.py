@@ -243,7 +243,7 @@ if __name__ == "__main__":
         # Check if our confidence matches future trend
         if confidence_trend > 0:
             # trend is up and confidence is up = good
-            if future_price_trend >= 0:
+            if future_price_trend > 0:
                 true_up = 1
             else:
                 false_up = 1
@@ -267,11 +267,12 @@ if __name__ == "__main__":
         og_df.at[curr, 'true_down'] = total_true_down
         og_df.at[curr, 'no_prediction'] = total_no_prediction
 
-    print("total_false_up:        ", total_false_up)
-    print("total_false_down:      ", total_false_down)
-    print("total_true_up:         ", total_true_up)
-    print("total_true_down:       ", total_true_down)
-    print("total_no_prediction:   ", total_no_prediction)
+    sum = total_false_up + total_false_down + total_true_up + total_true_down + total_no_prediction
+    print("total_false_up:        {} ({}%)".format(total_false_up, (total_false_up/sum)*100 ))
+    print("total_false_down:      {} ({}%)".format(total_false_down, (total_false_down/sum)*100 ))
+    print("total_true_up:         {} ({}%)".format(total_true_up, (total_true_up/sum)*100 ))
+    print("total_true_down:       {} ({}%)".format(total_true_down, (total_true_down/sum)*100 ))
+    print("total_no_prediction:   {} ({}%)".format(total_no_prediction, (total_no_prediction/sum)*100 ))
 
     processed_df = preprocess_data(og_df, MAX_BARS_BACK)
 

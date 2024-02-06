@@ -3,6 +3,8 @@
 import numpy as np
 import pandas as pd
 import pandas_ta as ta
+from sklearn.preprocessing import MinMaxScaler
+import builtins
 
 class MLExtensions:
 
@@ -55,18 +57,17 @@ class MLExtensions:
         '''
         # Convert the input list to a numpy array
         src = np.array(src)
-    
-        # Find the historic minimum and maximum values in the series
-        historic_min = np.min(src)
-        historic_max = np.max(src)
-    
-        # If any value in src is NaN, replace it with historic_min/max, respectively
-        historic_min = min(np.where(np.isnan(src), historic_min, src).min(), historic_min)
-        historic_max = max(np.where(np.isnan(src), historic_max, src).max(), historic_max)
-    
-        # Rescale the series from its historic range to the new specified range
-        rtn = min + (max - min) * (src - historic_min) / max(historic_max - historic_min, 1e-9)
-    
+        
+        # Reshape src to be a 2D array with one column
+        src_reshaped = src.reshape(-1, 1)
+
+        # normalize the data
+        scaler = MinMaxScaler(feature_range=(min, max))
+        scaled_data = scaler.fit_transform(src_reshaped)
+
+        # Flatten the scaled_data back into a 1D array
+        rtn = scaled_data.flatten()
+
         return rtn
     
     @staticmethod
@@ -167,30 +168,34 @@ class MLExtensions:
     
         rsi_values = ta.rsi(src_series, length=n1)
         ema_rsi = ta.ema(rsi_values, length=n2)
-        normalized_rsi = rescale(ema_rsi, 0, 100, 0, 1)
+        normalized_rsi = MLExtensions.normalize(ema_rsi, 0, 1)
     
         return normalized_rsi
     
     @staticmethod
-    def n_cci(src, n1, n2):
+    def n_cci(high_src, low_src, close_src, n1, n2):
         '''
         Returns the normalized CCI ideal for use in ML algorithms.
         
-        @param      src             <numpy array>   The input series (i.e., the result of the CCI calculation).
+        @param      high_src        <numpy array>   The input series for the high price.
+        @param      low_src         <numpy array>   The input series for the low price.
+        @param      close_src       <numpy array>   The input series for the close price.
         @param      n1              <int>           The length of the CCI.
         @param      n2              <int>           The smoothing length of the CCI.
         @returns    normalized_cci  <numpy array>   The normalized CCI.
         '''
-        src_series = pd.Series(src)
+        high_series = pd.Series(high_src)
+        low_series = pd.Series(low_src)
+        close_series = pd.Series(close_src)
         
         # Calculate the CCI using pandas_ta
-        cci_values = ta.cci(src_series, length=n1)
+        cci_values = ta.cci(high_series, low_series, close_series, length=n1)
     
         # Calculate the Exponential Moving Average (EMA) of CCI
         ema_cci_values = ta.ema(cci_values, length=n2)
     
         # Normalize the EMA of CCI to the range [0, 1]
-        normalized_cci = normalize(ema_cci_values, 0, 1)
+        normalized_cci = MLExtensions.normalize(ema_cci_values, 0, 1)
     
         return normalized_cci
     
@@ -222,7 +227,7 @@ class MLExtensions:
         wt2 = ta.sma(wt1, length=4)
         
         # Normalize the difference between WT1 and WT2 to the range [0, 1]
-        normalized_wt = normalize(wt1 - wt2, 0, 1)
+        normalized_wt = MLExtensions.normalize(wt1 - wt2, 0, 1)
     
         return normalized_wt
     
@@ -245,6 +250,24 @@ class MLExtensions:
         adx = ta.adx(high_src_series, low_src_series, close_src_series, length=n1)
     
         # Normalize the ADX to the range [0, 1]
-        normalized_adx = normalize(adx, 0, 1)
+        normalized_adx = MLExtensions.normalize(adx['ADX_{}'.format(n1)], 0, 1)
     
         return normalized_adx
+
+    @staticmethod
+    def regime_filter(src, threshold, useRegimeFilter):
+        value1 = 0.0
+        value2 = 0.0
+        klmf = 0.0
+
+    @staticmethod
+    def filter_adx(src, threshold, useRegimeFilter):
+        value1 = 0.0
+        value2 = 0.0
+        klmf = 0.0
+
+    @staticmethod
+    def filter_volatility(src, threshold, useRegimeFilter):
+        value1 = 0.0
+        value2 = 0.0
+        klmf = 0.0
