@@ -156,14 +156,14 @@ class MLExtensions:
     
     @staticmethod
     def n_rsi(src, n1, n2):
-        """
+        '''
         Calculate the normalized RSI.
     
         @param      src             <numpy array>   The input series.
         @param      n1              <int>           The length of the RSI.
         @param      n2              <int>           The smoothing length of the EMA.
         @returns    normalized_rsi  <numpy array>   The normalized RSI.
-        """
+        '''
         src_series = pd.Series(src)
     
         rsi_values = ta.rsi(src_series, length=n1)
@@ -254,20 +254,106 @@ class MLExtensions:
     
         return normalized_adx
 
+
+    # Filtering functions HAVE NOT BEEN TESTED
+    # Direct ChatGPT translation
     @staticmethod
-    def regime_filter(src, threshold, useRegimeFilter):
-        value1 = 0.0
-        value2 = 0.0
-        klmf = 0.0
+    def regime_filter(src, threshold, use_regime_filter):
+        '''
+        Calculates the regime filter based on the normalized slope decline.
+
+        Parameters:
+        @param      src                 <numpy array>   The source series (e.g., OHLC average).
+        @param      threshold           <float>         The threshold for the regime filter.
+        @param      use_regime_filter   <bool>          Flag to indicate whether to use the regime filter.
+        @returns:                       <bool>          Indicates whether or not to let the signal pass through the filter.
+        '''
+        # Calculate the smoothed values of price change and high-low difference
+        value1 = 0.2 * (src - src.shift(1)) + 0.8 * src.shift(1).fillna(method='bfill')
+        value2 = 0.1 * (src.high - src.low) + 0.8 * src.shift(1).fillna(method='bfill')
+    
+        # Calculate omega and alpha for the KLMF calculation
+        omega = np.abs(value1 / value2)
+        alpha = (-np.power(omega, 2) + np.sqrt(np.power(omega, 4) + 16 * np.power(omega, 2))) / 8
+    
+        # Calculate KLMF
+        klmf = alpha * src + (1 - alpha) * src.shift(1).fillna(method='bfill')
+    
+        # Calculate the absolute slope of the KLMF curve
+        abs_curve_slope = np.abs(klmf - klmf.shift(1))
+    
+        # Calculate the exponential average of the absolute curve slope
+        exponential_avg_abs_curve_slope = ta.ema(abs_curve_slope, length=200)
+    
+        # Calculate the normalized slope decline
+        normalized_slope_decline = (abs_curve_slope - exponential_avg_abs_curve_slope) / exponential_avg_abs_curve_slope
+    
+        # Apply the regime filter based on the normalized slope decline and the threshold
+        if use_regime_filter:
+            return normalized_slope_decline >= threshold
+        else:
+            return True
 
     @staticmethod
-    def filter_adx(src, threshold, useRegimeFilter):
-        value1 = 0.0
-        value2 = 0.0
-        klmf = 0.0
+    def filter_adx(src, high, low, length, adx_threshold, use_adx_filter):
+        '''
+        Calculate ADX and apply a threshold filter.
+
+        @param      src             <numpy array>   The source series (usually close prices).
+        @param      high            <numpy array>   The high prices series.
+        @param      low             <numpy array>   The low prices series.
+        @param      length          <int>           The length of the ADX.
+        @param      adx_threshold   <int>           The ADX threshold.
+        @param      use_adx_filter  <bool>          Flag to indicate whether to use the ADX filter.
+        @returns                    <numpy array>   The ADX series after applying the filter.
+        '''
+        # Calculate True Range (TR)
+        tr = pd.Series(np.max([high - low, np.abs(high - src.shift(1)), np.abs(low - src.shift(1))], axis=0))
+
+        # Calculate Directional Movement
+        directional_movement_plus = np.where(high - high.shift(1) > low.shift(1) - low, np.maximum(high - high.shift(1), 0), 0)
+        neg_movement = np.where(low.shift(1) - low > high - high.shift(1), np.maximum(low.shift(1) - low, 0), 0)
+
+        # Smooth the True Range and Directional Movements
+        tr_smooth = tr.rolling(window=length).mean()
+        smooth_directional_movement_plus = pd.Series(directional_movement_plus).rolling(window=length).mean()
+        smooth_neg_movement = pd.Series(neg_movement).rolling(window=length).mean()
+
+        # Calculate the Directional Indicators
+        di_positive = smooth_directional_movement_plus / tr_smooth * 100
+        di_negative = smooth_neg_movement / tr_smooth * 100
+
+        # Calculate the DX and ADX
+        dx = np.abs(di_positive - di_negative) / (di_positive + di_negative) * 100
+        adx = dx.rolling(window=length).mean()
+
+        # Apply ADX filter
+        if use_adx_filter:
+            return adx > adx_threshold
+        else:
+            return pd.Series([True] * len(src))
+        
 
     @staticmethod
-    def filter_volatility(src, threshold, useRegimeFilter):
-        value1 = 0.0
-        value2 = 0.0
-        klmf = 0.0
+    def filter_volatility(high, low, close, min_length=1, max_length=10, use_volatility_filter=True):
+        '''
+        Apply a volatility filter based on ATR.
+
+        @param      high                    <numpy array>   The high prices series.
+        @param      low                     <numpy array>   The low prices series.
+        @param      close                   <numpy array>   The close prices series.
+        @param      min_length              <int>           The minimum length for ATR calculation.
+        @param      max_length              <int>           The maximum length for ATR calculation.
+        @param      use_volatility_filter   <bool>          Flag to indicate whether to use the volatility filter.
+        @returns                            <numpy array>   A boolean series indicating whether the recent ATR is greater than the historical ATR.
+        '''
+        # Calculate ATR for recent and historical periods
+        recent_atr = ta.atr(high, low, close, length=min_length)
+        historical_atr = ta.atr(high, low, close, length=max_length)
+
+        # Apply the volatility filter
+        if use_volatility_filter:
+            return recent_atr > historical_atr
+        else:
+            return pd.Series([True] * len(close))
+
